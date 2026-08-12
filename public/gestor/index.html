@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAINO Gestor - Abertura de Chamados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ayko: { primary: '#0F172A', secondary: '#1E293B', accent: '#3B82F6', glow: '#60A5FA' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #0F172A; }
+        .page { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden-page { display: none !important; }
+        .gradient-btn { background: linear-gradient(135deg, #3B82F6, #1D4ED8); transition: all 0.3s ease; }
+        .gradient-btn:hover { background: linear-gradient(135deg, #60A5FA, #3B82F6); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(59,130,246,0.3); }
+        .input-glow:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(59,130,246,0.15); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1E293B; }
+        ::-webkit-scrollbar-thumb { background: #3B82F6; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+    <!-- Navbar -->
+    <nav class="bg-slate-900/80 backdrop-blur-lg border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center font-bold text-lg">K</div>
+                <span class="font-bold text-lg">KAINO</span>
+                <span class="text-xs text-gray-500 hidden sm:block border-l border-slate-700 pl-3">Gestor • Abertura de Chamados (AYKO)</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="gestorName" class="text-sm text-gray-400 hidden md:block"></span>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold">G</div>
+                <button onclick="logout()" class="text-sm text-red-400 hover:text-red-300">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Quick banner -->
+        <div class="grid md:grid-cols-4 gap-4 mb-8">
+            <div class="md:col-span-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 card-hover">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold">Central de Chamados 📞</h2>
+                        <p class="text-gray-500 mt-1">Um cliente ligou? Registre o chamado aqui em segundos — a KAINO aloca o melhor técnico automaticamente.</p>
+                        <div class="flex flex-wrap gap-3 mt-4">
+                            <button onclick="showPage('open')" class="gradient-btn px-6 py-3 rounded-xl font-semibold">Abrir Chamado</button>
+                            <button onclick="showPage('list')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold transition">Chamados Abertos</button>
+                        </div>
+                    </div>
+                    <div class="hidden md:block text-6xl">📞</div>
+                </div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-6 flex flex-col justify-center card-hover">
+                <div class="text-3xl font-bold" id="gestorCount">0</div>
+                <div class="text-sm text-blue-100 mt-1">Chamados abertos</div>
+                <div class="text-xs text-blue-200 mt-2">Registrados pelo gestor</div>
+            </div>
+        </div>
+
+        <!-- OPEN PAGE -->
+        <div id="page-open" class="page hidden-page">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 max-w-2xl">
+                <h3 class="text-xl font-bold mb-6">Abrir Chamado 📝</h3>
+                <form onsubmit="openTicket(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Cliente (quem está ligando) *</label>
+                        <select id="openClient" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none">
+                            <option value="">Selecione o cliente...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Título do Problema *</label>
+                        <input type="text" id="openTitle" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Ex: Queda total de internet">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Descrição (relato do cliente)</label>
+                        <textarea id="openDescription" rows="3"
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Descreva o que o cliente relatou por telefone..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Categoria</label>
+                            <select id="openCategory" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none">
+                                <option value="connectivity">Conectividade</option>
+                                <option value="outage">Queda</option>
+                                <option value="hardware">Hardware</option>
+                                <option value="installation">Instalação</option>
+                                <option value="configuration">Configuração</option>
+                                <option value="wifi">Wi-Fi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Complexidade</label>
+                            <select id="openComplexity" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none">
+                                <option value="1">1 - Simples</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3 - Média</option>
+                                <option value="4">4</option>
+                                <option value="5">5 - Muito complexa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Urgência relatada (cliente)</label>
+                            <select id="openPriority" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none">
+                                <option value="1">1 - Tranquilo</option>
+                                <option value="2">2</option>
+                                <option value="3" selected>3 - Normal</option>
+                                <option value="4">4</option>
+                                <option value="5">5 - Desespero</option>
+                            </select>
+                            <p class="text-[11px] text-gray-500 mt-1">A prioridade final é calculada pelo algoritmo automaticamente.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Prioridade final (automática)</label>
+                            <div id="priorityPreview" class="w-full px-4 py-3 rounded-xl bg-slate-800/30 border border-dashed border-slate-600 text-sm text-gray-400 flex items-center justify-center">
+                                será calculada
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-1">Fatores: categoria, complexidade, urgência, porte do cliente (backbone/empresa), espera e afetados.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Endereço / Local</label>
+                        <input type="text" id="openAddress"
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Rua, número, bairro">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Latitude</label>
+                            <input type="number" step="0.0001" id="openLat" value="-20.3155"
+                                class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Longitude</label>
+                            <input type="number" step="0.0001" id="openLon" value="-40.3128"
+                                class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none">
+                        </div>
+                    </div>
+                    <button type="submit" class="gradient-btn w-full py-4 rounded-xl font-bold text-lg">Abrir Chamado 🚀</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- LIST PAGE -->
+        <div id="page-list" class="page hidden-page">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+                <div class="flex flex-wrap items-center justify-between gap-4 p-6 border-b border-slate-800">
+                    <h3 class="font-semibold text-lg">Chamados Abertos</h3>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="gfilter-btn bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium" data-status="ALL">Todos</button>
+                        <button class="gfilter-btn bg-slate-800 text-gray-300 px-4 py-2 rounded-lg text-sm" data-status="PENDING">Pendentes</button>
+                        <button class="gfilter-btn bg-slate-800 text-gray-300 px-4 py-2 rounded-lg text-sm" data-status="ASSIGNED">Mobilizados</button>
+                        <button class="gfilter-btn bg-slate-800 text-gray-300 px-4 py-2 rounded-lg text-sm" data-status="IN_PROGRESS">Em Operação</button>
+                        <button class="gfilter-btn bg-slate-800 text-gray-300 px-4 py-2 rounded-lg text-sm" data-status="COMPLETED">Finalizados</button>
+                    </div>
+                </div>
+                <div id="gestorTicketsList" class="divide-y divide-slate-800"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let gestorTickets = [], gfilter = 'ALL';
+
+        function logout() {
+            localStorage.removeItem('ayko_token');
+            localStorage.removeItem('ayko_role');
+            window.location.href = '/';
+        }
+
+        function checkAuth() {
+            const role = localStorage.getItem('ayko_role');
+            if (!role) { window.location.href = '/'; return false; }
+            return true;
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden-page'));
+            document.getElementById('page-' + page).classList.remove('hidden-page');
+        }
+
+        async function apiGet(url) {
+            const res = await fetch(url);
+            return res.json();
+        }
+
+        async function apiPost(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return res.json();
+        }
+
+        async function loadClients() {
+            try {
+                const clients = await apiGet('/api/clients');
+                const select = document.getElementById('openClient');
+                select.innerHTML = '<option value="">Selecione o cliente...</option>' + clients.map(c =>
+                    `<option value="${c.id}">${c.name}${c.tier === 'business' ? ' 🏢 Empresa' : ''}${c.phone ? ' • ' + c.phone : ''}</option>`
+                ).join('');
+            } catch(e) {}
+        }
+
+        async function openTicket(e) {
+            e.preventDefault();
+            const clientId = document.getElementById('openClient').value;
+            if (!clientId) { alert('Selecione o cliente.'); return; }
+
+            const body = {
+                client_id: clientId,
+                title: document.getElementById('openTitle').value,
+                description: document.getElementById('openDescription').value,
+                category: document.getElementById('openCategory').value,
+                priority: document.getElementById('openPriority').value,
+                complexity: document.getElementById('openComplexity').value,
+                latitude: document.getElementById('openLat').value,
+                longitude: document.getElementById('openLon').value,
+                address: document.getElementById('openAddress').value,
+                created_by: localStorage.getItem('ayko_user_id') || 'NULL'
+            };
+
+            try {
+                const result = await apiPost('/api/tickets', body);
+                if (result.success) {
+                    alert('✅ Chamado #' + result.id + ' aberto! Prioridade calculada: ' + '⭐'.repeat(result.priority || 1) + ' (score ' + result.priority_score + '/100). A KAINO já está buscando o melhor técnico.');
+                    e.target.reset();
+                    document.getElementById('priorityPreview').textContent = 'será calculada';
+                    await loadGestorTickets();
+                    showPage('list');
+                }
+            } catch(err) {
+                alert('Erro ao abrir o chamado.');
+            }
+        }
+
+        async function loadGestorTickets() {
+            gestorTickets = await apiGet('/api/gestor/tickets');
+            if (!Array.isArray(gestorTickets)) gestorTickets = [];
+            document.getElementById('gestorCount').textContent = gestorTickets.length;
+            renderGestorTickets();
+        }
+
+        function getStatusLabel(status) {
+            return { PENDING: 'Pendente', ASSIGNED: 'Mobilizado', IN_PROGRESS: 'Em Operação', COMPLETED: 'Finalizado' }[status] || status;
+        }
+
+        function getStatusBadge(status) {
+            return {
+                PENDING: 'bg-purple-500/20 text-purple-400',
+                ASSIGNED: 'bg-blue-500/20 text-blue-400',
+                IN_PROGRESS: 'bg-yellow-500/20 text-yellow-400',
+                COMPLETED: 'bg-green-500/20 text-green-400'
+            }[status] || 'bg-slate-700 text-gray-300';
+        }
+
+        function renderGestorTickets() {
+            const container = document.getElementById('gestorTicketsList');
+            const filtered = gfilter === 'ALL' ? gestorTickets : gestorTickets.filter(t => t.status === gfilter);
+
+            container.innerHTML = filtered.length ? filtered.map(t => `
+                <div class="p-6 hover:bg-slate-800/50 transition">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div class="flex-1 min-w-[200px]">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(t.status)}">${getStatusLabel(t.status)}</span>
+                                <span class="px-3 py-1 rounded-full text-xs bg-slate-800 text-gray-400">#${t.id}</span>
+                                <span class="text-xs text-yellow-400">${'⭐'.repeat(t.priority || 1)}</span>
+                            </div>
+                            <h4 class="font-semibold text-lg">${t.title}</h4>
+                            <p class="text-gray-400 text-sm mt-1">${t.description || 'Sem descrição'}</p>
+                            <div class="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500">
+                                <span>👤 ${t.client_name}</span>
+                                <span>📍 ${t.address || 'Sem endereço'}</span>
+                                <span>📅 ${t.created_at || ''}</span>
+                                ${t.technician_name ? `<span class="text-blue-400">🛠 ${t.technician_name}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('') : '<div class="p-12 text-center text-gray-500"><div class="text-4xl mb-3">📭</div><p>Nenhum chamado encontrado.</p></div>';
+        }
+
+        async function init() {
+            if (!checkAuth()) return;
+            const name = localStorage.getItem('ayko_name');
+            if (name) document.getElementById('gestorName').textContent = 'Olá, ' + name;
+            await loadClients();
+            await loadGestorTickets();
+            showPage('open');
+        }
+
+        document.querySelectorAll('.gfilter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.gfilter-btn').forEach(b => {
+                    b.classList.remove('bg-blue-600', 'text-white');
+                    b.classList.add('bg-slate-800', 'text-gray-300');
+                });
+                this.classList.add('bg-blue-600', 'text-white');
+                this.classList.remove('bg-slate-800', 'text-gray-300');
+                gfilter = this.dataset.status;
+                renderGestorTickets();
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

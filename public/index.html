@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AYKO Operations Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ayko: {
+                            primary: '#0F172A',
+                            secondary: '#1E293B',
+                            accent: '#3B82F6',
+                            glow: '#60A5FA',
+                            success: '#10B981',
+                            warning: '#F59E0B',
+                            danger: '#EF4444'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px #3B82F6, 0 0 10px #3B82F6' },
+                            '100%': { boxShadow: '0 0 20px #60A5FA, 0 0 30px #60A5FA' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        body {
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .glass-light {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #60A5FA, #3B82F6, #818CF8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .gradient-btn {
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            transition: all 0.3s ease;
+        }
+        
+        .gradient-btn:hover {
+            background: linear-gradient(135deg, #60A5FA, #3B82F6);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+        
+        .card-hover {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #3B82F6;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        .login-container {
+            animation: slideUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-idle { background: #10B981; box-shadow: 0 0 10px #10B981; }
+        .status-busy { background: #F59E0B; box-shadow: 0 0 10px #F59E0B; }
+        .status-offline { background: #6B7280; }
+        
+        .fiber-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 3s linear forwards;
+        }
+        
+        @keyframes dash {
+            to { stroke-dashoffset: 0; }
+        }
+        
+        .page-transition {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .sidebar-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-item:hover, .sidebar-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: #3B82F6;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1E293B; }
+        ::-webkit-scrollbar-thumb { background: #3B82F6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #60A5FA; }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Animated Background Particles -->
+    <div id="particles" class="fixed inset-0 pointer-events-none overflow-hidden"></div>
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center font-bold text-lg">
+                    A
+                </div>
+                <span class="text-xl font-bold gradient-text">AYKO</span>
+                <span class="text-xs text-gray-400 border-l border-gray-600 pl-3">Operations Platform</span>
+            </div>
+            <div class="hidden md:flex items-center gap-6">
+                <a href="#features" class="text-gray-300 hover:text-white transition">Funcionalidades</a>
+                <a href="#demo" class="text-gray-300 hover:text-white transition">Demonstração</a>
+                <a href="#team" class="text-gray-300 hover:text-white transition">Equipe</a>
+            </div>
+            <button onclick="showLogin()" class="gradient-btn px-6 py-2 rounded-lg font-semibold">
+                Entrar
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex items-center justify-center pt-20 px-6">
+        <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <div class="login-container">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-light mb-6">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span class="text-sm text-gray-300">Hackathon Inovahack 2026</span>
+                </div>
+                <h1 class="text-5xl md:text-6xl font-bold leading-tight mb-6">
+                    Operações de<br>
+                    <span class="gradient-text">campo inteligentes</span>
+                </h1>
+                <p class="text-xl text-gray-400 mb-8 leading-relaxed">
+                    Plataforma que revoluciona a gestão de técnicos em campo. 
+                    Rastreamento em tempo real, alocação inteligente por habilidades, 
+                    e otimização de rotas com trânsito.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <button onclick="showLogin()" class="gradient-btn px-8 py-4 rounded-xl font-semibold text-lg">
+                        Acessar Plataforma →
+                    </button>
+                    <a href="#features" class="px-8 py-4 rounded-xl font-semibold text-lg glass hover:bg-white/10 transition">
+                        Saiba Mais
+                    </a>
+                </div>
+                
+                <!-- Stats Preview -->
+                <div class="grid grid-cols-3 gap-4 mt-12">
+                    <div class="glass-light rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-400">95%</div>
+                        <div class="text-xs text-gray-400">Match Preciso</div>
+                    </div>
+                    <div class="glass-light rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-green-400">-40min</div>
+                        <div class="text-xs text-gray-400">Tempo Alocação</div>
+                    </div>
+                    <div class="glass-light rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-purple-400">Real-time</div>
+                        <div class="text-xs text-gray-400">Rastreamento</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Visual Preview -->
+            <div class="relative hidden md:block">
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold">Técnicos Ativos</div>
+                                <div class="text-sm text-gray-400">5 em campo</div>
+                            </div>
+                            <div class="ml-auto flex -space-x-2">
+                                <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-slate-800"></div>
+                                <div class="w-8 h-8 rounded-full bg-green-500 border-2 border-slate-800"></div>
+                                <div class="w-8 h-8 rounded-full bg-purple-500 border-2 border-slate-800"></div>
+                            </div>
+                        </div>
+                        <div class="h-32 rounded-lg bg-gradient-to-br from-blue-900/50 to-purple-900/50 flex items-center justify-center relative overflow-hidden">
+                            <div class="absolute inset-0 opacity-30">
+                                <svg viewBox="0 0 200 100" class="w-full h-full">
+                                    <path d="M10,80 Q50,20 100,50 T190,30" fill="none" stroke="#3B82F6" stroke-width="2" class="fiber-line"/>
+                                    <path d="M10,50 Q70,80 130,40 T190,70" fill="none" stroke="#60A5FA" stroke-width="1.5" class="fiber-line"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm text-blue-300 relative z-10">Mapa de Fibra Óptica</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="glass-light rounded-lg p-3">
+                                <div class="text-green-400 text-lg font-bold">3</div>
+                                <div class="text-xs text-gray-400">Resolvidos hoje</div>
+                            </div>
+                            <div class="glass-light rounded-lg p-3">
+                                <div class="text-yellow-400 text-lg font-bold">45min</div>
+                                <div class="text-xs text-gray-400">Tempo médio</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Floating notification -->
+                <div class="absolute -bottom-4 -left-4 glass rounded-xl p-4 animate-float">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold">Ticket #47 resolvido</div>
+                            <div class="text-xs text-gray-400">Carlos O. • 5min atrás</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">Funcionalidades <span class="gradient-text">Revolucionárias</span></h2>
+                <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+                    Resolvemos os 7 maiores problemas enfrentados pela operação de campo da AYKO
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature 1 -->
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Match Inteligente</h3>
+                    <p class="text-gray-400">Algoritmo que cruza habilidades do técnico com complexidade do problema, garantindo a pessoa certa para cada serviço.</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Rotas com Trânsito</h3>
+                    <p class="text-gray-400">Otimização logística que considera condições reais de trânsito, obras na via e engarrafamentos em tempo real.</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Gestão de Tickets</h3>
+                    <p class="text-gray-400">Sistema de tickets organizado por prioridade, categoria e localização. Nunca mais uma lista confusa.</p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Sem WhatsApp</h3>
+                    <p class="text-gray-400">Notificações instantâneas para técnicos. A alocação que levava 40min agora acontece em segundos.</p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Triangulação de Fibra</h3>
+                    <p class="text-gray-400">Identificação remota de falhas na fibra óptica, reduzindo deslocamentos desnecessários.</p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">App do Técnico</h3>
+                    <p class="text-gray-400">Aplicação mobile via Electron com rotas, tarefas e informações concentradas para o técnico em campo.</p>
+                </div>
+                
+                <!-- Feature 7 -->
+                <div class="glass rounded-2xl p-6 card-hover md:col-span-2 lg:col-span-1">
+                    <div class="w-14 h-14 rounded-xl bg-pink-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Tracking Real-time</h3>
+                    <p class="text-gray-400">Rastreamento GPS dos técnicos com status em tempo real e ETA para conclusão dos serviços.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="hideLogin()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
+            <div class="glass rounded-3xl p-8 login-container">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                        A
+                    </div>
+                    <h2 class="text-2xl font-bold">Entrar na Plataforma</h2>
+                    <p class="text-gray-400 mt-2">AYKO Operations Platform</p>
+                </div>
+                
+                <form onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Usuário</label>
+                        <input type="text" id="username" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Digite seu usuário">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Senha</label>
+                        <input type="password" id="password" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Digite sua senha">
+                    </div>
+                    <button type="submit" class="w-full gradient-btn py-3 rounded-xl font-semibold text-lg">
+                        Entrar
+                    </button>
+                </form>
+                
+                <div class="mt-6 pt-6 border-t border-slate-700">
+                    <p class="text-sm text-gray-400 text-center mb-3">Contas de demonstração:</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                        <button onclick="fillLogin('admin', 'admin123')" class="glass-light rounded-lg p-2 hover:bg-white/10 transition">
+                            <div class="font-semibold text-blue-400">Admin</div>
+                            <div class="text-gray-500">admin</div>
+                        </button>
+                        <button onclick="fillLogin('tech1', 'tech123')" class="glass-light rounded-lg p-2 hover:bg-white/10 transition">
+                            <div class="font-semibold text-green-400">Técnico</div>
+                            <div class="text-gray-500">tech1</div>
+                        </button>
+                        <button onclick="fillLogin('cliente1', '123456')" class="glass-light rounded-lg p-2 hover:bg-white/10 transition">
+                            <div class="font-semibold text-purple-400">Cliente</div>
+                            <div class="text-gray-500">cliente1</div>
+                        </button>
+                        <button onclick="fillLogin('gestor', 'gestor123')" class="glass-light rounded-lg p-2 hover:bg-white/10 transition">
+                            <div class="font-semibold text-pink-400">Gestor</div>
+                            <div class="text-gray-500">gestor</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="team" class="py-12 px-6 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center font-bold">
+                    A
+                </div>
+                <span class="text-xl font-bold gradient-text">AYKO Technology</span>
+            </div>
+            <p class="text-gray-400 mb-2">Hackathon Inovahack 2026 • Equipe Kaino</p>
+            <p class="text-sm text-gray-500">
+                Backend C++ • Frontend HTML/CSS/JS • App Electron
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                particle.style.animationDuration = (5 + Math.random() * 5) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Login functions
+        function showLogin() {
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function hideLogin() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        function fillLogin(user, pass) {
+            document.getElementById('username').value = user;
+            document.getElementById('password').value = pass;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    // Store session
+                    localStorage.setItem('ayko_token', data.token);
+                    localStorage.setItem('ayko_role', data.role);
+                    localStorage.setItem('ayko_name', data.name);
+                    localStorage.setItem('ayko_user_id', data.id);
+                    
+                    // Redirect based on role
+                    if (data.role === 'admin') {
+                        window.location.href = '/admin';
+                    } else if (data.role === 'client') {
+                        window.location.href = '/client';
+                    } else if (data.role === 'technician') {
+                        window.location.href = '/technician';
+                    } else if (data.role === 'gestor') {
+                        window.location.href = '/gestor';
+                    }
+                } else {
+                    alert('Credenciais inválidas!');
+                }
+            } catch (err) {
+                alert('Erro ao conectar com o servidor. Certifique-se que o backend C++ está rodando.');
+            }
+        }
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
