@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AYKO Cliente - Portal do Cliente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ayko: { primary: '#0F172A', secondary: '#1E293B', accent: '#3B82F6', glow: '#60A5FA' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #0F172A; }
+        .page { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .hidden-page { display: none !important; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1E293B; }
+        ::-webkit-scrollbar-thumb { background: #3B82F6; border-radius: 4px; }
+        #map { height: 400px; border-radius: 16px; z-index: 1; }
+        .leaflet-container { background: #0F172A; }
+        .leaflet-popup-content-wrapper { background: #1E293B; color: white; border-radius: 12px; }
+        .leaflet-popup-tip { background: #1E293B; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(59,130,246,0.15); }
+        .gradient-btn { background: linear-gradient(135deg, #3B82F6, #1D4ED8); transition: all 0.3s ease; }
+        .gradient-btn:hover { background: linear-gradient(135deg, #60A5FA, #3B82F6); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(59,130,246,0.3); }
+        .input-glow:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Navbar -->
+    <nav class="bg-slate-900/80 backdrop-blur-lg border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center font-bold text-lg">A</div>
+                <span class="font-bold text-lg">AYKO</span>
+                <span class="text-xs text-gray-500 hidden sm:block border-l border-slate-700 pl-3">Portal do Cliente</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="clientName" class="text-sm text-gray-400 hidden md:block"></span>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold">C</div>
+                <button onclick="logout()" class="text-sm text-red-400 hover:text-red-300">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Quick Actions -->
+        <div class="grid md:grid-cols-4 gap-4 mb-8">
+            <div class="md:col-span-3 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 card-hover">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold">Bem-vindo de volta! 👋</h2>
+                        <p class="text-gray-500 mt-1">Acompanhe seus chamados ou relate um novo problema.</p>
+                        <div class="flex flex-wrap gap-3 mt-4">
+                            <button onclick="showPage('report')" class="gradient-btn px-6 py-3 rounded-xl font-semibold">
+                                Relatar Problema
+                            </button>
+                            <button onclick="showPage('track')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold transition">
+                                Acompanhar Chamados
+                            </button>
+                        </div>
+                    </div>
+                    <div class="hidden md:block text-6xl">🔧</div>
+                </div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-6 flex flex-col justify-center card-hover">
+                <div class="text-3xl font-bold" id="activeCount">0</div>
+                <div class="text-sm text-blue-100 mt-1">Chamados Ativos</div>
+                <div class="text-xs text-blue-200 mt-2">Tickets em andamento</div>
+            </div>
+        </div>
+
+        <!-- Report Page -->
+        <div id="page-report" class="page hidden-page">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 max-w-2xl">
+                <h3 class="text-xl font-bold mb-6">Relatar Problema 📝</h3>
+                <form onsubmit="reportIssue(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Título do Problema</label>
+                        <input type="text" id="reportTitle" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Ex: Internet caiu, conexão lenta, wi-fi não alcança...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Descrição Detalhada</label>
+                        <textarea id="reportDescription" rows="4" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Descreva o problema com detalhes..."></textarea>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Categoria</label>
+                            <select id="reportCategory" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 outline-none">
+                                <option value="connectivity">Conectividade</option>
+                                <option value="outage">Queda de Serviço</option>
+                                <option value="hardware">Hardware / Equipamento</option>
+                                <option value="installation">Instalação</option>
+                                <option value="wifi">Wi-Fi</option>
+                                <option value="configuration">Configuração</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Prioridade</label>
+                            <select id="reportPriority" class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 outline-none">
+                                <option value="2">Baixa</option>
+                                <option value="3" selected>Média</option>
+                                <option value="4">Alta</option>
+                                <option value="5">Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Endereço</label>
+                        <input type="text" id="reportAddress" required
+                            class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 input-glow transition outline-none"
+                            placeholder="Rua, número, bairro">
+                    </div>
+                    <button type="submit" class="w-full gradient-btn py-3 rounded-xl font-semibold text-lg">
+                        Enviar Problema
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Track Page -->
+        <div id="page-track" class="page hidden-page">
+            <h3 class="text-xl font-bold mb-6">Meus Chamados 📋</h3>
+            <div id="ticketsList" class="space-y-4"></div>
+        </div>
+    </main>
+
+    <script>
+        let ticketsData = [];
+
+        function logout() {
+            localStorage.removeItem('ayko_token');
+            localStorage.removeItem('ayko_role');
+            localStorage.removeItem('ayko_name');
+            window.location.href = '/';
+        }
+
+        function checkAuth() {
+            const role = localStorage.getItem('ayko_role');
+            if (role !== 'client') { window.location.href = '/'; return false; }
+            return true;
+        }
+
+        function showPage(page) {
+            document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden-page'));
+            document.getElementById('page-' + page).classList.remove('hidden-page');
+        }
+
+        async function apiGet(url) {
+            const res = await fetch(url);
+            return res.json();
+        }
+
+        async function apiPost(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return res.json();
+        }
+
+        async function loadClientTickets() {
+            const clientId = localStorage.getItem('ayko_user_id') || '2';
+            ticketsData = await apiGet(`/api/client/${clientId}/tickets`);
+            renderTickets();
+        }
+
+        function renderTickets() {
+            const container = document.getElementById('ticketsList');
+            const activeCount = document.getElementById('activeCount');
+            
+            const active = ticketsData.filter(t => t.status !== 'COMPLETED').length;
+            activeCount.textContent = active;
+
+            if (!ticketsData.length) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-gray-500">
+                        <div class="text-6xl mb-4">📭</div>
+                        <p class="text-lg">Você ainda não tem chamados.</p>
+                        <button onclick="showPage('report')" class="mt-4 text-blue-400 hover:text-blue-300">Relatar o primeiro problema →</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = ticketsData.map(t => `
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 card-hover">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div class="flex-1 min-w-[200px]">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(t.status)}">${getStatusLabel(t.status)}</span>
+                                <span class="text-xs text-gray-500">#${t.id} • ${t.created_at || ''}</span>
+                            </div>
+                            <h4 class="font-semibold text-lg">${t.title}</h4>
+                            <p class="text-gray-400 text-sm mt-1">${t.description || ''}</p>
+                            <div class="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+                                <span>📍 ${t.address || ''}</span>
+                                ${t.technician_name ? `<span class="text-blue-400">🛠 ${t.technician_name}</span>` : ''}
+                            </div>
+                        </div>
+                        ${t.status !== 'COMPLETED' ? getStatusTimeline(t) : ''}
+                    </div>
+                    <div class="mt-4">
+                        ${getStatusProgress(t)}
+                    </div>
+                    <button onclick="toggleHistory(${t.id})" class="mt-3 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                        <span id="histArrow-${t.id}">▸</span> Ver histórico de atendimento
+                    </button>
+                    <div id="history-${t.id}" class="hidden mt-3 pl-3 border-l-2 border-slate-700 space-y-3"></div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'PENDING': 'EM ANÁLISE',
+                'ASSIGNED': 'EQUIPE MOBILIZADA',
+                'IN_PROGRESS': 'EM OPERAÇÃO',
+                'COMPLETED': 'FINALIZADO'
+            };
+            return labels[status] || status;
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'PENDING': 'bg-purple-500/20 text-purple-400',
+                'ASSIGNED': 'bg-blue-500/20 text-blue-400',
+                'IN_PROGRESS': 'bg-yellow-500/20 text-yellow-400',
+                'COMPLETED': 'bg-green-500/20 text-green-400'
+            };
+            return badges[status] || 'bg-slate-700 text-gray-300';
+        }
+
+        function getStatusTimeline(t) {
+            return `
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="text-gray-500">ETA:</span>
+                    <span class="font-bold text-blue-400">~${t.estimated_duration || '60'} min</span>
+                </div>
+            `;
+        }
+
+        async function toggleHistory(ticketId) {
+            const container = document.getElementById('history-' + ticketId);
+            const arrow = document.getElementById('histArrow-' + ticketId);
+            if (!container.classList.contains('hidden')) {
+                container.classList.add('hidden');
+                arrow.textContent = '▸';
+                return;
+            }
+            container.classList.remove('hidden');
+            arrow.textContent = '▾';
+
+            if (!container.dataset.loaded) {
+                const history = await apiGet(`/api/tickets/${ticketId}/history`);
+                container.dataset.loaded = '1';
+                const icons = { PENDING: '📝', ASSIGNED: '🚚', IN_PROGRESS: '🔧', COMPLETED: '✅' };
+                container.innerHTML = history.length ? history.map(h => `
+                    <div class="flex items-start gap-3">
+                        <span class="text-lg">${icons[h.action] || '•'}</span>
+                        <div>
+                            <div class="text-sm font-medium">${h.description || h.action}</div>
+                            <div class="text-xs text-gray-500">${h.user_name || ''} • ${h.created_at || ''}</div>
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-sm text-gray-500">Sem eventos registrados.</p>';
+            }
+        }
+
+        function getStatusProgress(t) {
+            const steps = ['EM ANÁLISE', 'EQUIPE MOBILIZADA', 'EM OPERAÇÃO', 'FINALIZADO'];
+            const statuses = ['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'];
+            const currentIndex = statuses.indexOf(t.status);
+            
+            return `
+                <div class="flex items-center gap-1 mt-3">
+                    ${steps.map((step, i) => `
+                        <div class="flex-1 flex items-center">
+                            <div class="flex flex-col items-center flex-1">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold 
+                                    ${i <= currentIndex ? 'bg-blue-500 text-white' : 'bg-slate-800 text-gray-500'}">
+                                    ${i < currentIndex ? '✓' : i + 1}
+                                </div>
+                                <div class="text-[10px] mt-1 text-center ${i <= currentIndex ? 'text-blue-400' : 'text-gray-500'}">${step}</div>
+                            </div>
+                            ${i < steps.length - 1 ? `<div class="flex-1 h-0.5 mt-0 ${i < currentIndex ? 'bg-blue-500' : 'bg-slate-800'}"></div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function reportIssue(e) {
+            e.preventDefault();
+            const clientId = localStorage.getItem('ayko_user_id') || '2';
+            
+            const body = {
+                client_id: clientId,
+                title: document.getElementById('reportTitle').value,
+                description: document.getElementById('reportDescription').value,
+                category: document.getElementById('reportCategory').value,
+                priority: document.getElementById('reportPriority').value,
+                complexity: document.getElementById('reportPriority').value,
+                latitude: -20.3155,
+                longitude: -40.3128,
+                address: document.getElementById('reportAddress').value
+            };
+
+            try {
+                const result = await apiPost('/api/tickets', body);
+                if (result.success) {
+                    alert('✅ Problema relatado com sucesso! Prioridade calculada automaticamente: ' + '⭐'.repeat(result.priority || 1) + ' (score ' + result.priority_score + '/100). Nosso time entrará em contato.');
+                    document.getElementById('reportTitle').value = '';
+                    document.getElementById('reportDescription').value = '';
+                    document.getElementById('reportAddress').value = '';
+                    await loadClientTickets();
+                    showPage('track');
+                }
+            } catch(e) {
+                alert('Erro ao enviar problema.');
+            }
+        }
+
+        async function init() {
+            if (!checkAuth()) return;
+            const name = localStorage.getItem('ayko_name');
+            if (name) document.getElementById('clientName').textContent = 'Olá, ' + name;
+            await loadClientTickets();
+            showPage('track');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
